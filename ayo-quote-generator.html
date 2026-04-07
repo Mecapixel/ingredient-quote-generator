@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingredient Quote Generator - Ayo Labs</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    
+    .container { max-width: 1600px; margin: 0 auto; }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+      font-size: 24px;
+    }
+    
+    .header-text h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #06b6d4, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .header-text p { color: #64748b; font-size: 14px; }
+    
+    /* Top Controls */
+    .top-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .control-card {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(100, 116, 139, 0.2);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    
+    .control-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    
+    .upload-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px dashed #3b82f6;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-area:hover { background: rgba(59, 130, 246, 0.15); }
+    .upload-area.loaded { background: rgba(34, 197, 94, 0.1); border-color: #22c55e; border-style: solid; }
+    .upload-area.formula { background: rgba(168, 85, 247, 0.1); border-color: #a855f7; }
+    .upload-area.formula.loaded { background: rgba(34, 197, 94, 0.1); border-color: #22c55e; }
+    .upload-area span { color: #3b82f6; font-size: 14px; }
+    .upload-area.loaded span { color: #22c55e; }
+    .upload-area.formula span { color: #a855f7; }
+    .upload-area.formula.loaded span { color: #22c55e; }
+    .upload-area input { display: none; }
+    
+    .paste-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 8px;
+      color: #a855f7;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    
+    .paste-btn:hover { background: rgba(168, 85, 247, 0.2); }
+    
+    .text-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    
+    .text-input:focus { border-color: #3b82f6; }
+    
+    .batch-row { display: flex; gap: 8px; }
+    .batch-row input { flex: 1; }
+    .batch-row select {
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    
+    /* Panel */
+    .panel {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(100, 116, 139, 0.2);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .panel-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .stats-bar { display: flex; gap: 24px; align-items: center; }
+    .stat-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .stat-item .label { color: #64748b; }
+    .stat-item .value { font-weight: 600; }
+    .stat-item .value.green { color: #22c55e; }
+    .stat-item .value.yellow { color: #fbbf24; }
+    .stat-item .value.cyan { color: #06b6d4; }
+    
+    .panel-body { padding: 16px; overflow-x: auto; }
+    
+    /* Table */
+    .quote-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    
+    .quote-table th {
+      background: rgba(15, 23, 42, 0.6);
+      padding: 12px 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #94a3b8;
+      border-bottom: 2px solid rgba(100, 116, 139, 0.3);
+      white-space: nowrap;
+    }
+    
+    .quote-table td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(100, 116, 139, 0.1);
+      vertical-align: middle;
+    }
+    
+    .quote-table tr:hover { background: rgba(59, 130, 246, 0.05); }
+    .quote-table .part-num { font-weight: 600; color: #3b82f6; text-align: left; width: 60px; }
+    .quote-table .number-cell { text-align: right; font-family: 'SF Mono', Monaco, monospace; white-space: nowrap; }
+    .quote-table .status-missing { color: #f59e0b; font-style: italic; }
+    .quote-table .customer-supply { color: #a855f7; font-style: italic; }
+    
+    /* Search input in table */
+    .search-cell { position: relative; min-width: 250px; }
+    
+    .table-search {
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    
+    .table-search:focus { border-color: #3b82f6; }
+    .table-search.matched { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+    
+    .table-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 2px;
+      background: #1e293b;
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      display: none;
+    }
+    
+    .table-dropdown.show { display: block; }
+    
+    .table-dropdown-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(100, 116, 139, 0.1);
+      transition: background 0.15s;
+    }
+    
+    .table-dropdown-item:hover { background: rgba(59, 130, 246, 0.2); }
+    .table-dropdown-item-name { font-weight: 500; font-size: 13px; }
+    .table-dropdown-item-details { font-size: 11px; color: #64748b; margin-top: 2px; }
+    
+    /* Customer supply checkbox */
+    .customer-supply-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    
+    .customer-supply-check input { accent-color: #a855f7; cursor: pointer; }
+    .customer-supply-check label { font-size: 11px; color: #a855f7; cursor: pointer; }
+    
+    /* Percentage input */
+    .pct-input {
+      width: 75px;
+      padding: 8px 10px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      text-align: right;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    .pct-input:focus { border-color: #3b82f6; }
+    
+    /* Delete button */
+    .delete-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(100, 116, 139, 0.1);
+      border: none;
+      border-radius: 6px;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.15s;
+    }
+    
+    .delete-btn:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    
+    /* Footer */
+    .quote-table tfoot td {
+      padding: 16px 10px;
+      font-weight: 600;
+      border-top: 2px solid rgba(100, 116, 139, 0.3);
+    }
+    
+    .total-label { text-align: right; color: #94a3b8; }
+    .total-value { color: #22c55e; font-size: 16px; text-align: right; font-family: 'SF Mono', Monaco, monospace; }
+    
+    /* Bottom actions */
+    .bottom-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: rgba(15, 23, 42, 0.4);
+      border-top: 1px solid rgba(100, 116, 139, 0.2);
+    }
+    
+    .add-row-btn {
+      padding: 10px 20px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px dashed rgba(59, 130, 246, 0.5);
+      border-radius: 10px;
+      color: #3b82f6;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+    }
+    
+    .add-row-btn:hover { background: rgba(59, 130, 246, 0.2); }
+    
+    .export-btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    
+    .export-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(6, 182, 212, 0.4); }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.show { display: flex; }
+    
+    .modal-content {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow: auto;
+    }
+    
+    .modal h3 { margin: 0 0 16px 0; color: #a855f7; }
+    .modal p { color: #94a3b8; font-size: 13px; margin-bottom: 12px; }
+    
+    .modal textarea {
+      width: 100%;
+      height: 200px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      justify-content: flex-end;
+    }
+    
+    .modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    
+    .modal-btn.cancel { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+    .modal-btn.primary { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!-- Paste Modal -->
+  <div class="modal" id="pasteModal">
+    <div class="modal-content">
+      <h3>📝 Paste Formula</h3>
+      <p>Paste your formula ingredients below. Format: one ingredient per line.<br>
+      Include the ingredient name and percentage (e.g., "Water 85.55" or "Water, 85.55%")</p>
+      <textarea id="pasteArea" placeholder="Example:
+Water 85.55
+LaraCare A200 1.00
+Sorbitol 70% liquid 1.45
+Poly-Tresse 500 9.8"></textarea>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="closePasteModal()">Cancel</button>
+        <button class="modal-btn primary" onclick="parsePastedFormula()">Import Ingredients</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">📦</div>
+      <div class="header-text">
+        <h1>Ingredient Quote Generator</h1>
+        <p>Ayo Labs Procurement Tool</p>
+      </div>
+    </div>
+    
+    <!-- Top Controls -->
+    <div class="top-controls">
+      <div class="control-card">
+        <div class="control-label">1. Price List Database</div>
+        <label class="upload-area" id="uploadArea">
+          <span id="uploadText">📤 Upload Price List (.xlsx)</span>
+          <input type="file" accept=".xlsx,.xls" onchange="handlePriceListUpload(event)">
+        </label>
+      </div>
+      
+      <div class="control-card">
+        <div class="control-label">2. Import Formula (Optional)</div>
+        <label class="upload-area formula" id="formulaUploadArea">
+          <span id="formulaUploadText">📋 Upload Formula (.xlsx, .xls)</span>
+          <input type="file" accept=".xlsx,.xls" onchange="handleFormulaUpload(event)">
+        </label>
+        <button class="paste-btn" onclick="showPasteModal()">📝 Or Paste Formula Text</button>
+      </div>
+      
+      <div class="control-card">
+        <div class="control-label">Formula Name</div>
+        <input type="text" class="text-input" id="formulaName" placeholder="e.g., Together Beauty Spray">
+      </div>
+      
+      <div class="control-card">
+        <div class="control-label">Batch Size</div>
+        <div class="batch-row">
+          <input type="number" class="text-input" id="batchSize" value="1000" onchange="updateStats()">
+          <select id="batchUnit">
+            <option value="kg">KG</option>
+            <option value="g">Grams</option>
+            <option value="lb">LB</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quote Table Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>📊 Quote Sheet</h2>
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="label">Items:</span>
+            <span class="value cyan" id="statItems">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Total %:</span>
+            <span class="value yellow" id="statPercentage">0.00%</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Matched:</span>
+            <span class="value green" id="statMatched">0/0</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="panel-body">
+        <table class="quote-table">
+          <thead>
+            <tr>
+              <th style="width:60px">Part #</th>
+              <th>Trade Name / INCI / CAS</th>
+              <th>Vendor</th>
+              <th style="width:90px">% w/w</th>
+              <th style="width:100px">Price of Pack</th>
+              <th style="width:60px">Unit</th>
+              <th style="width:100px">Pack Size</th>
+              <th style="width:90px">Price/Unit</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="quoteBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="7" class="total-label">TOTAL COST:</td>
+              <td class="total-value" id="totalCost">$0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <div class="bottom-actions">
+        <button class="add-row-btn" onclick="addRow()">➕ Add Ingredient</button>
+        <button class="export-btn" onclick="exportToExcel()">📥 Export Quote to Excel</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * Ingredient Quote Generator
+ * 
+ * A browser-based procurement automation tool for contract manufacturing.
+ * Replaces manual cross-referencing of vendor price lists and formula sheets
+ * with automated matching, real-time cost calculation, and Excel export.
+ * 
+ * Author: Meca Dismukes
+ * Built: December 2024
+ * Stack: Vanilla JS, HTML/CSS, xlsx-js-style
+ */
+
+// ─── Application State ───────────────────────────────────────────────────────
+let priceList = [];   // Parsed vendor price database from uploaded Excel
+let rows = [];        // Current quote rows (ingredients)
+let nextPartNum = 1;  // Auto-incrementing part number counter
+
+// ─── Initialization ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => addRow());
+
+// Close all open dropdowns when clicking outside a search cell
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-cell')) {
+    document.querySelectorAll('.table-dropdown').forEach(d => d.classList.remove('show'));
+  }
+});
+
+// ─── Modal Controls ───────────────────────────────────────────────────────────
+function showPasteModal() { document.getElementById('pasteModal').classList.add('show'); }
+function closePasteModal() { document.getElementById('pasteModal').classList.remove('show'); }
+
+function parsePastedFormula() {
+  const text = document.getElementById('pasteArea').value.trim();
+  if (!text) { alert('Please paste some formula text'); return; }
+  
+  const lines = text.split('\n').filter(line => line.trim());
+  rows = [];
+  nextPartNum = 1;
+  
+  lines.forEach((line, i) => {
+    line = line.trim().replace(/[,\t]+/g, ' ').replace(/%/g, '');
+    if (!line) return;
+    
+    let name = '', pct = 0;
+    const numMatch = line.match(/(\d+\.?\d*)/);
+    if (numMatch) {
+      pct = parseFloat(numMatch[1]);
+      name = line.replace(numMatch[0], '').trim().replace(/\s+/g, ' ');
+    } else {
+      name = line;
+    }
+    
+    if (!name || name.length < 2) return;
+    
+    const isCustomer = name.toLowerCase().includes('customer') || 
+                       name.toLowerCase().includes('fragrance') ||
+                       name.toLowerCase().includes('ce-');
+    
+    rows.push({
+      id: Date.now() + i,
+      partNum: nextPartNum++,
+      searchQuery: name,
+      percentage: pct,
+      selectedProduct: null,
+      isCustomerSupply: isCustomer
+    });
+  });
+  
+  if (rows.length === 0) { alert('Could not parse any ingredients.'); return; }
+  
+  document.getElementById('formulaUploadArea').classList.add('loaded');
+  document.getElementById('formulaUploadText').textContent = `✅ ${rows.length} ingredients imported`;
+  
+  closePasteModal();
+  autoMatchRows();
+  renderTable();
+}
+
+// ─── Price List Upload ────────────────────────────────────────────────────────
+// Parses vendor Excel file dynamically — detects column positions by header name
+// rather than assuming fixed positions, making it resilient to spreadsheet variations
+function handlePriceListUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+      const sheetName = wb.SheetNames.includes('Sheet3') ? 'Sheet3' : wb.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header: 1});
+      
+      let hdr = 0;
+      for (let i = 0; i < Math.min(10, data.length); i++) {
+        if (data[i] && data[i].join(' ').toLowerCase().includes('vendor')) { hdr = i; break; }
+      }
+      
+      const h = (data[hdr] || []).map(x => String(x||'').toLowerCase());
+      const cols = {
+        vendor: h.findIndex(x => x.includes('vendor')),
+        product: h.findIndex(x => x.includes('product')),
+        inci: h.findIndex(x => x.includes('inci')),
+        pack: h.findIndex(x => x.includes('pack') && x.includes('size')),
+        priceKg: h.findIndex(x => x.includes('price') && x.includes('kg')),
+        total: h.findIndex(x => x.includes('total'))
+      };
+      
+      priceList = [];
+      for (let i = hdr + 1; i < data.length; i++) {
+        const r = data[i];
+        if (!r || !r[cols.product]) continue;
+        const packStr = String(r[cols.pack] || '');
+        priceList.push({
+          vendor: String(r[cols.vendor] || '').trim(),
+          product: String(r[cols.product] || '').trim(),
+          inci: String(r[cols.inci] || '').trim(),
+          packSize: packStr,
+          packNum: parseFloat(packStr.replace(/[^0-9.]/g, '')) || 1,
+          priceKg: parseFloat(r[cols.priceKg]) || 0,
+          totalPrice: parseFloat(r[cols.total]) || 0
+        });
+      }
+      
+      if (priceList.length) {
+        document.getElementById('uploadArea').classList.add('loaded');
+        document.getElementById('uploadText').textContent = `✅ ${priceList.length} products loaded`;
+        autoMatchRows();
+        renderTable();
+      }
+    } catch (err) { alert('Error reading price list: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─── Formula Upload ───────────────────────────────────────────────────────────
+// Supports two internal formula formats with automatic detection:
+//   1. Phase-based format (rows start with PHASE A, PHASE B, etc.)
+//   2. Standard quote format (rows start with part numbers)
+function handleFormulaUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1});
+      
+      // Detect format: Ayo Labs (has PHASE) or Quote format (has Part number)
+      const isAyoFormat = data.some(r => r && r[0] && String(r[0]).toUpperCase().includes('PHASE'));
+      
+      rows = [];
+      nextPartNum = 1;
+      let productName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+      
+      if (isAyoFormat) {
+        // Ayo Labs format
+        for (let r of data) {
+          if (r && String(r[0]).toLowerCase().includes('product')) {
+            productName = String(r[1] || '').trim() || productName;
+            break;
+          }
+        }
+        
+        for (let r of data) {
+          if (!r) continue;
+          const phase = String(r[0] || '').trim().toUpperCase();
+          const ingredient = String(r[1] || '').trim();
+          let pct = parseFloat(r[3]) || 0;
+          
+          if (!ingredient || ingredient.length < 2) continue;
+          if (phase.includes('PHASE') || ingredient.toUpperCase().includes('INGREDIENT')) continue;
+          if (ingredient.toUpperCase().includes('PROCEDURE') || ingredient.toUpperCase().includes('MANUFACTURING')) continue;
+          
+          if (phase.length <= 2) {
+            if (pct > 0 && pct < 1) pct = pct * 100;
+            
+            const isCustomer = ingredient.toLowerCase().includes('customer') ||
+                              ingredient.toLowerCase().includes('fragrance') ||
+                              ingredient.toLowerCase().includes('ce-');
+            
+            rows.push({
+              id: Date.now() + rows.length,
+              partNum: nextPartNum++,
+              searchQuery: ingredient,
+              percentage: pct,
+              selectedProduct: null,
+              isCustomerSupply: isCustomer
+            });
+          }
+        }
+      } else {
+        // Quote format
+        let hdr = data.findIndex(r => r && String(r[0]).toLowerCase().includes('part'));
+        if (hdr === -1) hdr = 1;
+        
+        for (let i = 0; i < hdr; i++) {
+          if (data[i] && data[i][1] && String(data[i][1]).trim().length > 3) {
+            productName = String(data[i][1]).trim();
+            break;
+          }
+        }
+        
+        for (let i = hdr + 1; i < data.length; i++) {
+          const r = data[i];
+          if (!r) continue;
+          const name = String(r[1] || '').trim();
+          const pct = parseFloat(r[3]) || 0;
+          if (!name || name.length < 2) continue;
+          
+          const isCustomer = name.toLowerCase().includes('customer') ||
+                            name.toLowerCase().includes('fragrance') ||
+                            (name.toLowerCase().includes('ce-') && !r[2]);
+          
+          rows.push({
+            id: Date.now() + rows.length,
+            partNum: parseFloat(r[0]) || nextPartNum++,
+            searchQuery: name,
+            percentage: pct,
+            selectedProduct: null,
+            isCustomerSupply: isCustomer
+          });
+        }
+      }
+      
+      if (rows.length) {
+        document.getElementById('formulaUploadArea').classList.add('loaded');
+        document.getElementById('formulaUploadText').textContent = `✅ ${rows.length} ingredients imported`;
+        document.getElementById('formulaName').value = productName;
+        autoMatchRows();
+        renderTable();
+      } else {
+        alert('Could not parse formula. Please check file format.');
+      }
+    } catch (err) { alert('Error reading formula: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─── Fuzzy Ingredient Matching ────────────────────────────────────────────────
+// Multi-strategy cascade: exact name → exact INCI → partial name → word-by-word fallback
+// Filters out short/common words (length <= 3) to avoid false positives
+function findMatch(name) {
+  const q = name.toLowerCase().trim();
+  let m = priceList.find(p => p.product.toLowerCase() === q);
+  if (m) return m;
+  m = priceList.find(p => p.inci.toLowerCase() === q);
+  if (m) return m;
+  m = priceList.find(p => p.product.toLowerCase().includes(q) || q.includes(p.product.toLowerCase()));
+  if (m) return m;
+  const words = q.split(/[\s,\-]+/).filter(w => w.length > 3);
+  for (const w of words) {
+    m = priceList.find(p => p.product.toLowerCase().includes(w) || p.inci.toLowerCase().includes(w));
+    if (m) return m;
+  }
+  return null;
+}
+
+// ─── Auto-Match ───────────────────────────────────────────────────────────────
+// Runs fuzzy match on all unmatched rows after price list or formula loads
+function autoMatchRows() {
+  if (!priceList.length) return;
+  rows.forEach(row => {
+    if (row.selectedProduct || row.isCustomerSupply) return;
+    row.selectedProduct = findMatch(row.searchQuery);
+  });
+}
+
+// ─── Live Search ──────────────────────────────────────────────────────────────
+// Filters price list by product name, INCI, or vendor — returns top 10 results
+function searchProducts(query) {
+  if (!query || query.length < 2 || !priceList.length) return [];
+  const q = query.toLowerCase();
+  return priceList.filter(p => 
+    p.product.toLowerCase().includes(q) ||
+    p.inci.toLowerCase().includes(q) ||
+    p.vendor.toLowerCase().includes(q)
+  ).slice(0, 10);
+}
+
+// Add row
+function addRow() {
+  rows.push({
+    id: Date.now(),
+    partNum: nextPartNum++,
+    searchQuery: '',
+    percentage: 0,
+    selectedProduct: null,
+    isCustomerSupply: false
+  });
+  renderTable();
+}
+
+// Delete row
+function deleteRow(id) {
+  rows = rows.filter(r => r.id !== id);
+  rows.forEach((r, i) => r.partNum = i + 1);
+  nextPartNum = rows.length + 1;
+  renderTable();
+}
+
+// ─── Table Rendering ──────────────────────────────────────────────────────────
+// Fully re-renders quote table from state on every update
+function renderTable() {
+  const tbody = document.getElementById('quoteBody');
+  
+  tbody.innerHTML = rows.map(row => {
+    const p = row.selectedProduct;
+    const isCust = row.isCustomerSupply;
+    const hasMatch = p !== null && !isCust;
+    
+    return `
+      <tr>
+        <td class="part-num">${row.partNum.toFixed ? row.partNum.toFixed(2) : row.partNum}</td>
+        <td class="search-cell">
+          <input type="text" class="table-search ${hasMatch ? 'matched' : ''}"
+            value="${row.searchQuery}"
+            placeholder="Search ingredient..."
+            oninput="handleSearch(${row.id}, this.value)"
+            onfocus="showDropdown(${row.id}, this.value)">
+          <div class="table-dropdown" id="dropdown-${row.id}"></div>
+          <div class="customer-supply-check">
+            <input type="checkbox" id="cs-${row.id}" ${isCust ? 'checked' : ''} onchange="toggleCustomer(${row.id}, this.checked)">
+            <label for="cs-${row.id}">Customer Supply</label>
+          </div>
+        </td>
+        <td class="${isCust ? 'customer-supply' : ''}">${isCust ? '—' : (hasMatch ? p.vendor : '<span class="status-missing">Select product</span>')}</td>
+        <td><input type="number" class="pct-input" step="0.01" value="${row.percentage || ''}" onchange="updatePct(${row.id}, this.value)" placeholder="0.00"></td>
+        <td class="number-cell ${isCust ? 'customer-supply' : ''}">${isCust ? '—' : (hasMatch ? '$'+p.totalPrice.toFixed(2) : '')}</td>
+        <td class="number-cell ${isCust ? 'customer-supply' : ''}">${isCust ? '—' : (hasMatch ? 'kg' : '')}</td>
+        <td class="number-cell ${isCust ? 'customer-supply' : ''}">${isCust ? '—' : (hasMatch ? p.packSize : '')}</td>
+        <td class="number-cell ${isCust ? 'customer-supply' : ''}">${isCust ? '—' : (hasMatch ? '$'+p.priceKg.toFixed(2) : '')}</td>
+        <td><button class="delete-btn" onclick="deleteRow(${row.id})">🗑️</button></td>
+      </tr>
+    `;
+  }).join('');
+  
+  updateStats();
+}
+
+// Handle search input
+function handleSearch(id, value) {
+  const row = rows.find(r => r.id === id);
+  if (row) {
+    row.searchQuery = value;
+    row.selectedProduct = null;
+    showDropdown(id, value);
+  }
+  updateStats();
+}
+
+// Show dropdown
+function showDropdown(id, query) {
+  document.querySelectorAll('.table-dropdown').forEach(d => d.classList.remove('show'));
+  
+  const dropdown = document.getElementById(`dropdown-${id}`);
+  if (!dropdown || query.length < 2) return;
+  
+  const results = searchProducts(query);
+  if (results.length === 0) {
+    dropdown.innerHTML = '<div style="padding:12px;color:#64748b;text-align:center;">No matches found</div>';
+  } else {
+    dropdown.innerHTML = results.map((p, i) => `
+      <div class="table-dropdown-item" onmousedown="event.preventDefault(); selectProduct(${id}, ${i})">
+        <div class="table-dropdown-item-name">${p.product}</div>
+        <div class="table-dropdown-item-details">${p.vendor} • $${p.priceKg}/kg • ${p.packSize}</div>
+      </div>
+    `).join('');
+  }
+  dropdown._results = results;
+  dropdown.classList.add('show');
+}
+
+// Select product
+function selectProduct(id, resultIdx) {
+  const dropdown = document.getElementById(`dropdown-${id}`);
+  const product = dropdown._results[resultIdx];
+  const row = rows.find(r => r.id === id);
+  
+  if (row && product) {
+    row.selectedProduct = product;
+    row.searchQuery = product.product;
+    row.isCustomerSupply = false;
+  }
+  
+  document.querySelectorAll('.table-dropdown').forEach(d => d.classList.remove('show'));
+  renderTable();
+}
+
+// Toggle customer supply
+function toggleCustomer(id, checked) {
+  const row = rows.find(r => r.id === id);
+  if (row) {
+    row.isCustomerSupply = checked;
+    if (checked) row.selectedProduct = null;
+  }
+  renderTable();
+}
+
+// Update percentage
+function updatePct(id, value) {
+  const row = rows.find(r => r.id === id);
+  if (row) row.percentage = parseFloat(value) || 0;
+  updateStats();
+}
+
+// ─── Stats & Cost Calculation ─────────────────────────────────────────────────
+// Recalculates total cost: (batch_size × ingredient_pct / 100) × price_per_kg
+// Updates header stats bar in real time
+function updateStats() {
+  const total = rows.length;
+  const totalPct = rows.reduce((sum, r) => sum + (r.percentage || 0), 0);
+  const matched = rows.filter(r => r.selectedProduct || r.isCustomerSupply).length;
+  
+  document.getElementById('statItems').textContent = total;
+  
+  const pctEl = document.getElementById('statPercentage');
+  pctEl.textContent = totalPct.toFixed(2) + '%';
+  pctEl.className = 'value ' + (Math.abs(totalPct - 100) < 0.01 ? 'green' : 'yellow');
+  
+  document.getElementById('statMatched').textContent = `${matched}/${total}`;
+  
+  // Calculate cost
+  const batch = parseFloat(document.getElementById('batchSize').value) || 1000;
+  let cost = 0;
+  rows.forEach(r => {
+    if (r.selectedProduct && r.percentage && !r.isCustomerSupply) {
+      cost += (batch * r.percentage / 100) * r.selectedProduct.priceKg;
+    }
+  });
+  
+  document.getElementById('totalCost').textContent = '$' + cost.toFixed(2);
+}
+
+// ─── Excel Export ─────────────────────────────────────────────────────────────
+// Generates formatted professional quote sheet with styled headers,
+// proper column widths, and branded color scheme using xlsx-js-style
+function exportToExcel() {
+  const name = document.getElementById('formulaName').value || 'Quote';
+  
+  // Styles
+  const border = {
+    top: {style: 'thin', color: {rgb: '000000'}},
+    bottom: {style: 'thin', color: {rgb: '000000'}},
+    left: {style: 'thin', color: {rgb: '000000'}},
+    right: {style: 'thin', color: {rgb: '000000'}}
+  };
+  
+  const headerStyle = {
+    fill: {fgColor: {rgb: 'D9EAD3'}},
+    font: {bold: true, sz: 10},
+    alignment: {horizontal: 'center', vertical: 'center', wrapText: true},
+    border: border
+  };
+  
+  const cellStyle = { alignment: {vertical: 'center'}, border: border };
+  const numStyle = { alignment: {vertical: 'center', horizontal: 'right'}, border: border };
+  const titleStyle = { font: {bold: true, sz: 14} };
+  
+  // Build data
+  const wsData = [
+    [null, {v: name, s: titleStyle}],
+    [],
+    [
+      {v: 'Part number', s: headerStyle},
+      {v: 'Trade Name/INCI/CAS', s: headerStyle},
+      {v: 'Vendor 1', s: headerStyle},
+      {v: '% of the component in formulation based on weight', s: headerStyle},
+      {v: 'Price of a supply pack', s: headerStyle},
+      {v: 'Unit of Measure of a supply pack', s: headerStyle},
+      {v: 'Pack Size (amount of units of measure in a pack)', s: headerStyle},
+      {v: 'Price per unit', s: headerStyle}
+    ]
+  ];
+  
+  rows.forEach(row => {
+    const isCust = row.isCustomerSupply;
+    const p = row.selectedProduct;
+    
+    wsData.push([
+      {v: row.partNum, s: cellStyle},
+      {v: row.searchQuery, s: cellStyle},
+      {v: isCust ? '' : (p ? p.vendor : ''), s: cellStyle},
+      {v: row.percentage || '', s: numStyle},
+      {v: isCust ? '' : (p ? p.totalPrice : ''), s: numStyle},
+      {v: isCust ? '' : (p ? 'kg' : ''), s: cellStyle},
+      {v: isCust ? '' : (p ? p.packNum : ''), s: numStyle},
+      {v: isCust ? '' : (p ? p.priceKg : ''), s: numStyle}
+    ]);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  
+  ws['!cols'] = [
+    {wch: 12}, {wch: 58}, {wch: 24}, {wch: 12},
+    {wch: 16}, {wch: 12}, {wch: 16}, {wch: 12}
+  ];
+  
+  ws['!rows'] = [{hpt: 22}, {hpt: 15}, {hpt: 55}];
+  
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  XLSX.writeFile(wb, name.replace(/[^a-z0-9]/gi, '_') + '_Quote.xlsx');
+}
+</script>
+</body>
+</html>
