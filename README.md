@@ -4,6 +4,8 @@ A single-file browser application built for a contract manufacturing company to 
 
 **Reduced quote turnaround time by 60%** and eliminated manual pricing errors across 50+ vendor products.
 
+> [⬇ Download ayo-quote-generator.html](ayo-quote-generator.html) — click the file, then click **Raw** or the download button in the top right.
+
 ---
 
 ## What it does
@@ -34,7 +36,7 @@ The sales team receives customer formulas listing ingredients and percentages. T
 
 ## How to use
 
-1. Download `ayo-quote-generator.html`
+1. [Download ayo-quote-generator.html](ayo-quote-generator.html) — click the link, then click the download button in the top right corner of the file page
 2. Open it in any web browser — no installation needed
 3. Upload your vendor price list Excel file
 4. Either upload a formula Excel file or paste ingredients directly
